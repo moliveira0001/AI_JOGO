@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RiverGrip 2D</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <main class="shell">
+        <header class="title">
+            <h1>RiverGrip 2D</h1>
+            <p>Sobrevoe o rio, resgate sobreviventes e mantenha seu avião em segurança.</p>
+        </header>
+        <div class="stage">
+            <canvas id="game" width="480" height="720" aria-label="Jogo RiverGrip 2D"></canvas>
+        </div>
+        <div class="sidebar">
+            <aside class="help">
+                <h2>Controles</h2>
+                <ul>
+                    <li><kbd>←</kbd> <kbd>→</kbd> ou <kbd>A</kbd> <kbd>D</kbd> — esquerda / direita</li>
+                    <li><kbd>↑</kbd> / <kbd>W</kbd> — frente</li>
+                    <li><kbd>↓</kbd> / <kbd>S</kbd> — trás</li>
+                    <li>Passe sobre o <strong>FUEL</strong> para recuperar 10% do tanque</li>
+                    <li>Pegue os corações para ganhar vidas (máximo: 6)</li>
+                    <li><kbd>Espaço</kbd> — atirar</li>
+                    <li><kbd>Enter</kbd> — iniciar / reiniciar</li>
+                </ul>
+            </aside>
+            <section class="ranking" aria-labelledby="ranking-title">
+                <h2 id="ranking-title">Ranking</h2>
+                <p class="ranking-note">Informe seu nome. A pontuação será salva automaticamente ao fim da partida.</p>
+                <div id="score-form">
+                    <label for="player-name">Nome do jogador</label>
+                    <input id="player-name" name="player" type="text" maxlength="18" autocomplete="nickname" placeholder="Seu nome (opcional)" />
+                </div>
+                <p id="score-status" class="score-status" role="status" aria-live="polite">A pontuação é salva automaticamente ao fim. Sem nome, será registrada como Jogador.</p>
+                <ol id="ranking-list" class="ranking-list" aria-label="Melhores pontuações"></ol>
+            </section>
+        </div>
+    </main>
+    <script src="game.js"></script>
+</body>
+
+</html>
