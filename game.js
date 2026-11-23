@@ -1606,22 +1606,6 @@
             button.setPointerCapture(event.pointerId);
         });
 
-        controlModeButtons.forEach((button) => {
-            button.addEventListener("click", () => setControlMode(button.dataset.controlMode));
-        });
-
-        analogStick.addEventListener("pointerdown", (event) => {
-            event.preventDefault();
-            analogStick.setPointerCapture(event.pointerId);
-            updateJoystick(event);
-        });
-        analogStick.addEventListener("pointermove", (event) => {
-            if (analogStick.hasPointerCapture(event.pointerId)) updateJoystick(event);
-        });
-        analogStick.addEventListener("pointerup", releaseJoystick);
-        analogStick.addEventListener("pointercancel", releaseJoystick);
-        analogStick.addEventListener("lostpointercapture", releaseJoystick);
-
         const releaseButton = () => {
             keys.delete(key);
             button.classList.remove("pressed");
@@ -1630,6 +1614,23 @@
         button.addEventListener("pointercancel", releaseButton);
         button.addEventListener("lostpointercapture", releaseButton);
     });
+
+    controlModeButtons.forEach((button) => {
+        button.addEventListener("click", () => setControlMode(button.dataset.controlMode));
+    });
+
+    analogStick.addEventListener("pointerdown", (event) => {
+        if (controlMode !== "joystick") return;
+        event.preventDefault();
+        analogStick.setPointerCapture(event.pointerId);
+        updateJoystick(event);
+    });
+    analogStick.addEventListener("pointermove", (event) => {
+        if (analogStick.hasPointerCapture(event.pointerId)) updateJoystick(event);
+    });
+    analogStick.addEventListener("pointerup", releaseJoystick);
+    analogStick.addEventListener("pointercancel", releaseJoystick);
+    analogStick.addEventListener("lostpointercapture", releaseJoystick);
 
     startForm.addEventListener("submit", (event) => {
         event.preventDefault();
