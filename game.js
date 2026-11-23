@@ -19,8 +19,13 @@
     const gameActionButton = document.querySelector("[data-action='state']");
     const jumpButton = document.querySelector("[data-action='jump']");
     const touchControlButtons = document.querySelectorAll(".touch-controls [data-key]");
+    const touchControls = document.querySelector(".touch-controls");
+    const controlModeButtons = document.querySelectorAll("[data-control-mode]");
+    const analogStick = document.querySelector(".analog-stick");
+    const joystickKnob = document.querySelector(".joystick-knob");
     const fullscreenButtons = document.querySelectorAll("[data-action='fullscreen']");
     const RANKING_STORAGE_KEY = "rivergrip-ranking-v1";
+    const CONTROL_MODE_STORAGE_KEY = "rivergrip-control-mode-v1";
 
     const STATE = { MENU: "menu", PLAY: "play", OVER: "over", PAUSE: "pause" };
     const MAX_LIVES = 6;
@@ -34,6 +39,9 @@
     let savedScores = [];
     let rankingAvailable = true;
     let helpOpenedDuringPlay = false;
+    let controlMode = "directional";
+    let joystickAxisX = 0;
+    let joystickAxisY = 0;
 
     const PHASES = [
         { id: 1, name: "FASE 1", subtitle: "Rio Interior", sky: "#b9d8d3", land: "#688b78", water: "#55a8ae", waterDeep: "#468f9b", accent: "#a8f0dc", scenery: ["tree", "tree", "house", "farm"], landmark: "waterfall", spawnLimit: 4, enemySpeed: 0.9, targetScore: 1200, rescueGoal: 2 },
@@ -124,6 +132,70 @@
         if (!g) return;
         g.warning = text;
         g.warningTimer = time;
+    }
+
+    function setControlMode(mode, persist = true) {
+        controlMode = mode;
+        touchControls.dataset.controlMode = mode;
+        controlModeButtons.forEach((button) => {
+            button.setAttribute("aria-pressed", String(button.dataset.controlMode === mode));
+        });
+        releaseJoystick();
+
+        if (persist) {
+            try {
+                window.localStorage.setItem(CONTROL_MODE_STORAGE_KEY, mode);
+            } catch (error) {
+                setScoreStatus("Não foi possível salvar a preferência de controle neste navegador.", true);
+                console.error("Falha ao salvar o controle escolhido:", error);
+            }
+        }
+    }
+
+    function loadControlMode() {
+        try {
+            const storedMode = window.localStorage.getItem(CONTROL_MODE_STORAGE_KEY);
+            return storedMode === "joystick" || storedMode === "directional" ? storedMode : "directional";
+        } catch (error) {
+            setScoreStatus("Não foi possível carregar a preferência de controle neste navegador.", true);
+            console.error("Falha ao carregar o controle salvo:", error);
+            return "directional";
+        }
+    }
+
+    function updateJoystick(event) {
+        if (controlMode !== "joystick") return;
+
+        const bounds = analogStick.getBoundingClientRect();
+        const radius = bounds.width / 2;
+        const maxOffset = radius * 0.62;
+        let x = event.clientX - (bounds.left + radius);
+        let y = event.clientY - (bounds.top + radius);
+        const distance = Math.hypot(x, y);
+
+        if (distance > maxOffset) {
+            x = x / distance * maxOffset;
+            y = y / distance * maxOffset;
+        }
+
+        const normalizedX = x / maxOffset;
+        const normalizedY = y / maxOffset;
+        const magnitude = Math.hypot(normalizedX, normalizedY);
+        const deadZone = 0.14;
+        const scale = magnitude <= deadZone ? 0 : (magnitude - deadZone) / (magnitude * (1 - deadZone));
+        joystickAxisX = normalizedX * scale;
+        joystickAxisY = normalizedY * scale;
+        joystickKnob.style.setProperty("--joystick-x", `${x}px`);
+        joystickKnob.style.setProperty("--joystick-y", `${y}px`);
+        analogStick.classList.add("active");
+    }
+
+    function releaseJoystick() {
+        joystickAxisX = 0;
+        joystickAxisY = 0;
+        joystickKnob.style.setProperty("--joystick-x", "0px");
+        joystickKnob.style.setProperty("--joystick-y", "0px");
+        analogStick.classList.remove("active");
     }
 
     function ensureAudio() {
@@ -702,10 +774,10 @@
         g.warningTimer = Math.max(0, (g.warningTimer || 0) - dt);
         if (g.warningTimer <= 0) g.warning = "";
 
-        if (keys.has("ArrowLeft") || keys.has("KeyA")) p.x -= move;
-        if (keys.has("ArrowRight") || keys.has("KeyD")) p.x += move;
-        if (keys.has("ArrowUp") || keys.has("KeyW")) p.y -= move;
-        if (keys.has("ArrowDown") || keys.has("KeyS")) p.y += move;
+        const keyboardX = Number(keys.has("ArrowRight") || keys.has("KeyD")) - Number(keys.has("ArrowLeft") || keys.has("KeyA"));
+        const keyboardY = Number(keys.has("ArrowDown") || keys.has("KeyS")) - Number(keys.has("ArrowUp") || keys.has("KeyW"));
+        p.x += clamp(keyboardX + joystickAxisX, -1, 1) * move;
+        p.y += clamp(keyboardY + joystickAxisY, -1, 1) * move;
 
         p.x = clamp(p.x, 8, W - 8 - p.w);
         p.y = clamp(p.y, 78, H - 40 - p.h);
@@ -1521,6 +1593,7 @@
 
     function releaseAllControls() {
         keys.clear();
+        releaseJoystick();
     }
 
     touchControlButtons.forEach((button) => {
@@ -1532,6 +1605,22 @@
             button.classList.add("pressed");
             button.setPointerCapture(event.pointerId);
         });
+
+        controlModeButtons.forEach((button) => {
+            button.addEventListener("click", () => setControlMode(button.dataset.controlMode));
+        });
+
+        analogStick.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            analogStick.setPointerCapture(event.pointerId);
+            updateJoystick(event);
+        });
+        analogStick.addEventListener("pointermove", (event) => {
+            if (analogStick.hasPointerCapture(event.pointerId)) updateJoystick(event);
+        });
+        analogStick.addEventListener("pointerup", releaseJoystick);
+        analogStick.addEventListener("pointercancel", releaseJoystick);
+        analogStick.addEventListener("lostpointercapture", releaseJoystick);
 
         const releaseButton = () => {
             keys.delete(key);
@@ -1575,6 +1664,7 @@
         if (document.hidden) releaseAllControls();
     });
 
+    setControlMode(loadControlMode(), false);
     loadRanking();
     startModal.showModal();
     updateFullscreenButtons();

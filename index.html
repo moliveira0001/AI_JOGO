@@ -16,17 +16,30 @@
         </header>
         <section class="game-area" aria-label="Área do jogo">
             <div class="stage">
-                <button class="fullscreen-button" type="button" data-action="fullscreen" aria-label="Ativar tela cheia">⛶ Tela cheia</button>
-                <button class="help-overlay-button" type="button" data-action="help" aria-label="Como jogar">AJUDA</button>
-                <p id="fullscreen-status" class="fullscreen-status" role="status" aria-live="polite"></p>
+                <div class="stage-toolbar" aria-label="Opções do jogo">
+                    <p id="fullscreen-status" class="fullscreen-status" role="status" aria-live="polite"></p>
+                    <button class="fullscreen-button" type="button" data-action="fullscreen" aria-label="Ativar tela cheia">⛶ Tela cheia</button>
+                    <button class="help-overlay-button" type="button" data-action="help" aria-label="Como jogar">AJUDA</button>
+                </div>
                 <canvas id="game" width="480" height="720" aria-label="Jogo RiverGrip 2D"></canvas>
             </div>
             <div class="touch-controls" aria-label="Controles de toque">
-                <div class="direction-pad" role="group" aria-label="Movimentar avião">
-                    <button class="control-button direction-up" type="button" data-key="ArrowUp" aria-label="Mover para frente">▲</button>
-                    <button class="control-button direction-left" type="button" data-key="ArrowLeft" aria-label="Mover para a esquerda">◀</button>
-                    <button class="control-button direction-down" type="button" data-key="ArrowDown" aria-label="Mover para trás">▼</button>
-                    <button class="control-button direction-right" type="button" data-key="ArrowRight" aria-label="Mover para a direita">▶</button>
+                <div class="movement-controls">
+                    <div class="control-mode-picker" role="group" aria-label="Escolha o controle de movimento">
+                        <button class="mode-option" type="button" data-control-mode="directional" aria-pressed="true">DIRECIONAL</button>
+                        <button class="mode-option" type="button" data-control-mode="joystick" aria-pressed="false">JOYSTICK</button>
+                    </div>
+                    <div class="direction-pad" role="group" aria-label="Direcional para movimentar o avião">
+                        <button class="control-button direction-up" type="button" data-key="ArrowUp" aria-label="Mover para frente">▲</button>
+                        <button class="control-button direction-left" type="button" data-key="ArrowLeft" aria-label="Mover para a esquerda">◀</button>
+                        <button class="control-button direction-down" type="button" data-key="ArrowDown" aria-label="Mover para trás">▼</button>
+                        <button class="control-button direction-right" type="button" data-key="ArrowRight" aria-label="Mover para a direita">▶</button>
+                    </div>
+                    <div class="analog-stick" role="group" aria-label="Joystick analógico para movimentar o avião">
+                        <div class="joystick-ring">
+                            <div class="joystick-knob"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="action-controls" role="group" aria-label="Ações do jogo">
                     <button class="control-button fire-button" type="button" data-key="Space" aria-label="Atirar">ATIRAR</button>
@@ -39,7 +52,7 @@
             <aside class="help">
                 <h2>Controles</h2>
                 <ul>
-                    <li>No celular, segure os controles para mover e atirar; toque em PULAR para saltar</li>
+                    <li>No celular, escolha o DIRECIONAL de setas ou o JOYSTICK; segure ATIRAR para disparar</li>
                     <li>Nas pontes, use <kbd>J</kbd> ou PULAR para saltar sem perder vida, ou acerte 3 tiros para destruí-las</li>
                     <li><kbd>←</kbd> <kbd>→</kbd> ou <kbd>A</kbd> <kbd>D</kbd> — esquerda / direita</li>
                     <li><kbd>↑</kbd> / <kbd>W</kbd> — frente</li>
@@ -65,6 +78,11 @@
             <p class="modal-description">Escolha seu nome antes de começar. Se deixar em branco, usaremos “Jogador”.</p>
             <label for="player-name">Nome do jogador</label>
             <input id="player-name" name="player" type="text" maxlength="18" autocomplete="nickname" placeholder="Seu nome (opcional)" />
+            <label>Controle de movimento</label>
+            <div class="control-mode-picker" role="group" aria-label="Escolha o controle de movimento">
+                <button class="mode-option" type="button" data-control-mode="directional" aria-pressed="true">DIRECIONAL</button>
+                <button class="mode-option" type="button" data-control-mode="joystick" aria-pressed="false">JOYSTICK</button>
+            </div>
             <div class="modal-actions">
                 <button class="primary-button" type="submit">Começar partida</button>
                 <button class="secondary-button" type="button" data-action="fullscreen">⛶ Tela cheia</button>
@@ -78,6 +96,7 @@
             <h2 id="help-title">Como jogar</h2>
             <ul class="modal-help-list">
                 <li>No celular, segure o direcional para mover e ATIRAR para disparar.</li>
+                <li>Escolha DIRECIONAL para os botões de setas ou JOYSTICK para controlar a direção arrastando o círculo.</li>
                 <li>Desvie dos inimigos e mantenha o avião dentro do rio.</li>
                 <li>Pegue sobreviventes, combustível e corações para pontuar e ganhar vidas.</li>
                 <li>Nas pontes, toque em PULAR ou pressione J para saltar sem perder vida; ou acerte 3 tiros para destruí-las.</li>
