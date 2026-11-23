@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>RiverGrip 2D</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
@@ -14,13 +14,30 @@
             <h1>RiverGrip 2D</h1>
             <p>Sobrevoe o rio, resgate sobreviventes e mantenha seu avião em segurança.</p>
         </header>
-        <div class="stage">
-            <canvas id="game" width="480" height="720" aria-label="Jogo RiverGrip 2D"></canvas>
-        </div>
+        <section class="game-area" aria-label="Área do jogo">
+            <div class="stage">
+                <canvas id="game" width="480" height="720" aria-label="Jogo RiverGrip 2D"></canvas>
+            </div>
+            <div class="touch-controls" aria-label="Controles de toque">
+                <div class="direction-pad" role="group" aria-label="Movimentar avião">
+                    <button class="control-button direction-up" type="button" data-key="ArrowUp" aria-label="Mover para frente">▲</button>
+                    <button class="control-button direction-left" type="button" data-key="ArrowLeft" aria-label="Mover para a esquerda">◀</button>
+                    <button class="control-button direction-down" type="button" data-key="ArrowDown" aria-label="Mover para trás">▼</button>
+                    <button class="control-button direction-right" type="button" data-key="ArrowRight" aria-label="Mover para a direita">▶</button>
+                </div>
+                <div class="action-controls" role="group" aria-label="Ações do jogo">
+                    <button class="control-button fire-button" type="button" data-key="Space" aria-label="Atirar">ATIRAR</button>
+                    <button class="control-button jump-button" type="button" data-action="jump">PULAR</button>
+                    <button class="control-button game-action" type="button" data-action="state">INICIAR</button>
+                </div>
+            </div>
+        </section>
         <div class="sidebar">
             <aside class="help">
                 <h2>Controles</h2>
                 <ul>
+                    <li>No celular, segure os controles para mover e atirar; toque em PULAR para saltar</li>
+                    <li>Nas pontes, use <kbd>J</kbd> ou PULAR para saltar sem perder vida, ou acerte 3 tiros para destruí-las</li>
                     <li><kbd>←</kbd> <kbd>→</kbd> ou <kbd>A</kbd> <kbd>D</kbd> — esquerda / direita</li>
                     <li><kbd>↑</kbd> / <kbd>W</kbd> — frente</li>
                     <li><kbd>↓</kbd> / <kbd>S</kbd> — trás</li>

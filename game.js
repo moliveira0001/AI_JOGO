@@ -9,6 +9,9 @@
     const playerNameInput = document.getElementById("player-name");
     const scoreStatus = document.getElementById("score-status");
     const rankingList = document.getElementById("ranking-list");
+    const gameActionButton = document.querySelector("[data-action='state']");
+    const jumpButton = document.querySelector("[data-action='jump']");
+    const touchControlButtons = document.querySelectorAll(".touch-controls [data-key]");
     const RANKING_STORAGE_KEY = "rivergrip-ranking-v1";
 
     const STATE = { MENU: "menu", PLAY: "play", OVER: "over", PAUSE: "pause" };
@@ -91,6 +94,9 @@
             lifeSpawnTimer: randomRange(12, 20),
             rescued: 0,
             shootCooldown: 0,
+            bridgeJump: 0,
+            bridgeJumpCooldown: 0,
+            nextBridgeY: H + 420,
             refueling: false,
             invuln: 2,
             flash: 0,
@@ -139,6 +145,15 @@
         if (engineGain) {
             engineGain.gain.setTargetAtTime(0.04, engineAudio.currentTime, 0.15);
         }
+    }
+
+    function startBridgeJump() {
+        if (state !== STATE.PLAY || !game || game.bridgeJumpCooldown > 0) return;
+
+        game.bridgeJump = 1.1;
+        game.bridgeJumpCooldown = 1.8;
+        setWarning(game, "SALTO!", 0.8);
+        beep(740, 0.09, "triangle", 0.04);
     }
 
     function stopEngineSound() {
@@ -496,7 +511,7 @@
         const config = getPhaseConfig(g.phase);
         const target = Math.max(2, config.spawnLimit - 1 + Math.min(2, Math.floor(g.score / 1100)));
 
-        while (g.entities.filter((e) => !e.dead && e.type !== "life").length < target) {
+        while (g.entities.filter((e) => !e.dead && e.type !== "life" && e.type !== "bridge").length < target) {
             const canSpawnFuel = Math.random() < 0.12 + g.phase * 0.02;
             if (canSpawnFuel) {
                 const maxY = g.entities.reduce((m, e) => Math.max(m, e.y), g.scroll + H);
@@ -508,6 +523,24 @@
                 spawnShipWave(g);
             }
         }
+    }
+
+    function maybeSpawnBridge(g) {
+        if (g.scroll + H < g.nextBridgeY) return;
+
+        const worldY = g.nextBridgeY;
+        const river = riverAt(worldY);
+        g.entities.push({
+            type: "bridge",
+            x: river.left - 12,
+            y: worldY,
+            w: river.right - river.left + 24,
+            h: 26,
+            health: 3,
+            warned: false,
+            dead: false,
+        });
+        g.nextBridgeY = worldY + randomRange(1100, 1500);
     }
 
     function maybeSpawnLife(g, dt) {
@@ -660,6 +693,8 @@
 
         if (!g.refueling) g.fuel -= 2.0 * dt;
         g.shootCooldown = Math.max(0, g.shootCooldown - dt);
+        g.bridgeJump = Math.max(0, g.bridgeJump - dt);
+        g.bridgeJumpCooldown = Math.max(0, g.bridgeJumpCooldown - dt);
         g.flash = Math.max(0, g.flash - dt);
         g.invuln = Math.max(0, g.invuln - dt);
         g.refueling = false;
@@ -677,6 +712,7 @@
         }
 
         maybeSpawn(g);
+        maybeSpawnBridge(g);
         maybeSpawnLife(g, dt);
 
         const playerWorld = { x: p.x, y: screenToWorldY(g, p.y), w: p.w, h: p.h };
@@ -709,6 +745,11 @@
         g.entities.forEach((e) => {
             if (e.dead) return;
 
+            if (e.type === "bridge" && !e.warned && toScreenY(g, e.y) > p.y - 150) {
+                e.warned = true;
+                setWarning(g, "PONTE! PULE OU ATIRE", 2);
+            }
+
             if (e.type === "victim" && e.carriedBy) {
                 e.x = e.carriedBy.x + e.carriedBy.w / 2 - 6;
                 e.y = e.carriedBy.y - 18;
@@ -717,7 +758,16 @@
             g.bullets.forEach((b) => {
                 if (!e.dead && e.type !== "life" && e.type !== "victim" && rectsOverlap(b, { x: e.x, y: e.y, w: e.w, h: e.h })) {
                     b.y = 99999;
-                    e.dead = true;
+                    if (e.type === "bridge") {
+                        e.health -= 1;
+                        if (e.health <= 0) {
+                            e.dead = true;
+                            g.score += 250;
+                            setWarning(g, "PONTE DESTRUÍDA!", 1.1);
+                        }
+                    } else {
+                        e.dead = true;
+                    }
                     if (e.type === "fuel") {
                         g.score += 80;
                     } else if (e.type === "jet") {
@@ -734,6 +784,8 @@
 
             if (e.type === "life" && toScreenY(g, e.y) > H + 80) {
                 e.dead = true;
+            } else if (e.type === "bridge" && toScreenY(g, e.y) > H + 80) {
+                e.dead = true;
             } else if (e.type !== "fuel" && e.type !== "victim" && toScreenY(g, e.y) > H + 80) {
                 e.dead = true;
                 setWarning(g, "INIMIGO ESCAPOU!", 1.2);
@@ -744,12 +796,20 @@
         });
 
         const rescuedThisFrame = handlePlayerCollision(g, playerWorld);
+        const hitBridge = g.entities.some((e) =>
+            !e.dead && e.type === "bridge"
+            && rectsOverlap(playerWorld, { x: e.x, y: e.y, w: e.w, h: e.h })
+        );
         if (!rescuedThisFrame && g.invuln <= 0) {
-            const riverPlayer = riverAt(playerWorld.y + p.h * 0.5);
-            if (playerWorld.x < riverPlayer.left || playerWorld.x + playerWorld.w > riverPlayer.right) {
-                loseLife(g, "rio");
-            } else if (escapedEnemy) {
-                loseLife(g, "inimigo");
+            if (hitBridge && g.bridgeJump <= 0) {
+                loseLife(g, "ponte");
+            } else {
+                const riverPlayer = riverAt(playerWorld.y + p.h * 0.5);
+                if (playerWorld.x < riverPlayer.left || playerWorld.x + playerWorld.w > riverPlayer.right) {
+                    loseLife(g, "rio");
+                } else if (escapedEnemy) {
+                    loseLife(g, "inimigo");
+                }
             }
         }
 
@@ -1017,11 +1077,12 @@
         ctx.stroke();
     }
 
-    function drawPlane(p) {
+    function drawPlane(p, jumping = false) {
         ctx.save();
         ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
-        ctx.shadowColor = "rgba(12, 35, 42, 0.35)";
-        ctx.shadowBlur = 9;
+        ctx.scale(jumping ? 1.16 : 1, jumping ? 1.16 : 1);
+        ctx.shadowColor = jumping ? "rgba(165, 236, 213, 0.9)" : "rgba(12, 35, 42, 0.35)";
+        ctx.shadowBlur = jumping ? 16 : 9;
         ctx.shadowOffsetY = 4;
         ctx.fillStyle = "#f4fbfa";
         ctx.beginPath();
@@ -1053,7 +1114,43 @@
     }
 
     function drawEntity(e, screenY, paletteData) {
-        if (e.type === "ship") {
+        if (e.type === "bridge") {
+            ctx.fillStyle = "rgba(10, 25, 30, 0.32)";
+            ctx.fillRect(e.x - 3, screenY + 5, e.w + 6, e.h + 4);
+            ctx.fillStyle = "#594b3d";
+            ctx.fillRect(e.x, screenY + 3, e.w, e.h - 3);
+            ctx.fillStyle = "#b68b5c";
+            ctx.fillRect(e.x, screenY + 7, e.w, 4);
+            ctx.fillStyle = "#73543b";
+            for (let plank = 0; plank < e.w; plank += 12) {
+                ctx.fillRect(e.x + plank, screenY + 12, 2, 10);
+            }
+            ctx.fillStyle = "#ded0ad";
+            ctx.fillRect(e.x, screenY + 2, e.w, 3);
+            ctx.fillRect(e.x, screenY + e.h - 3, e.w, 3);
+
+            const supportCount = Math.max(2, Math.floor(e.w / 65));
+            ctx.fillStyle = "#76634a";
+            for (let support = 0; support <= supportCount; support += 1) {
+                const supportX = e.x + e.w * support / supportCount;
+                ctx.fillRect(supportX - 2, screenY - 5, 4, e.h + 10);
+            }
+
+            if (e.health < 3) {
+                ctx.strokeStyle = "#e7a36f";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(e.x + e.w * 0.35, screenY + 7);
+                ctx.lineTo(e.x + e.w * 0.39, screenY + 13);
+                ctx.lineTo(e.x + e.w * 0.36, screenY + 19);
+                if (e.health === 1) {
+                    ctx.moveTo(e.x + e.w * 0.67, screenY + 8);
+                    ctx.lineTo(e.x + e.w * 0.64, screenY + 14);
+                    ctx.lineTo(e.x + e.w * 0.69, screenY + 20);
+                }
+                ctx.stroke();
+            }
+        } else if (e.type === "ship") {
             ctx.fillStyle = "rgba(8, 29, 40, 0.25)";
             ctx.beginPath();
             ctx.ellipse(e.x + e.w / 2, screenY + e.h / 2 + 3, e.w * 0.52, e.h * 0.42, 0, 0, Math.PI * 2);
@@ -1247,7 +1344,43 @@
         ctx.restore();
     }
 
+    function startGame() {
+        game = createGame();
+        state = STATE.PLAY;
+        playerNameInput.blur();
+        setScoreStatus("Pontuação será salva automaticamente ao fim da partida.");
+        startEngineSound();
+        beep(520, 0.08, "square", 0.04);
+    }
+
+    function toggleGameState() {
+        if (state === STATE.MENU || state === STATE.OVER) {
+            startGame();
+        } else if (state === STATE.PLAY) {
+            state = STATE.PAUSE;
+            stopEngineSound();
+            beep(440, 0.05, "sine", 0.03);
+        } else if (state === STATE.PAUSE) {
+            state = STATE.PLAY;
+            startEngineSound();
+            beep(550, 0.05, "sine", 0.03);
+        }
+    }
+
+    function syncGameActionButton() {
+        if (state === STATE.MENU) {
+            gameActionButton.textContent = "INICIAR";
+        } else if (state === STATE.OVER) {
+            gameActionButton.textContent = "JOGAR";
+        } else if (state === STATE.PAUSE) {
+            gameActionButton.textContent = "CONTINUAR";
+        } else {
+            gameActionButton.textContent = "PAUSAR";
+        }
+    }
+
     function render(g) {
+        syncGameActionButton();
         if (!g) {
             g = createGame();
         }
@@ -1265,7 +1398,7 @@
             ctx.fillRect(b.x, toScreenY(g, b.y), b.w, b.h);
         });
 
-        drawPlane(g.player);
+        drawPlane(g.player, g.bridgeJump > 0);
         drawWarning(g);
 
         if (g.flash > 0) {
@@ -1310,33 +1443,55 @@
         keys.add(event.code);
 
         if (event.code === "KeyP" || event.code === "Escape") {
-            if (state === STATE.PLAY) {
-                state = STATE.PAUSE;
-                stopEngineSound();
-                beep(440, 0.05, "sine", 0.03);
-            } else if (state === STATE.PAUSE) {
-                state = STATE.PLAY;
-                startEngineSound();
-                beep(550, 0.05, "sine", 0.03);
-            }
+            toggleGameState();
             event.preventDefault();
             return;
+        }
+
+        if ((event.code === "KeyJ" || event.code === "ShiftLeft" || event.code === "ShiftRight") && !event.repeat) {
+            startBridgeJump();
+            event.preventDefault();
         }
 
         if (event.code === "Space" || event.code.startsWith("Arrow")) event.preventDefault();
 
         if (event.code === "Enter") {
-            game = createGame();
-            state = STATE.PLAY;
-            playerNameInput.blur();
-            setScoreStatus("Pontuação será salva automaticamente ao fim da partida.");
-            startEngineSound();
-            beep(520, 0.08, "square", 0.04);
+            startGame();
         }
     });
 
     window.addEventListener("keyup", (event) => {
         keys.delete(event.code);
+    });
+
+    function releaseAllControls() {
+        keys.clear();
+    }
+
+    touchControlButtons.forEach((button) => {
+        const key = button.dataset.key;
+
+        button.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            keys.add(key);
+            button.classList.add("pressed");
+            button.setPointerCapture(event.pointerId);
+        });
+
+        const releaseButton = () => {
+            keys.delete(key);
+            button.classList.remove("pressed");
+        };
+        button.addEventListener("pointerup", releaseButton);
+        button.addEventListener("pointercancel", releaseButton);
+        button.addEventListener("lostpointercapture", releaseButton);
+    });
+
+    gameActionButton.addEventListener("click", toggleGameState);
+    jumpButton.addEventListener("click", startBridgeJump);
+    window.addEventListener("blur", releaseAllControls);
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) releaseAllControls();
     });
 
     loadRanking();
