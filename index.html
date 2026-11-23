@@ -16,6 +16,9 @@
         </header>
         <section class="game-area" aria-label="Área do jogo">
             <div class="stage">
+                <button class="fullscreen-button" type="button" data-action="fullscreen" aria-label="Ativar tela cheia">⛶ Tela cheia</button>
+                <button class="help-overlay-button" type="button" data-action="help" aria-label="Como jogar">AJUDA</button>
+                <p id="fullscreen-status" class="fullscreen-status" role="status" aria-live="polite"></p>
                 <canvas id="game" width="480" height="720" aria-label="Jogo RiverGrip 2D"></canvas>
             </div>
             <div class="touch-controls" aria-label="Controles de toque">
@@ -49,16 +52,56 @@
             </aside>
             <section class="ranking" aria-labelledby="ranking-title">
                 <h2 id="ranking-title">Ranking</h2>
-                <p class="ranking-note">Informe seu nome. A pontuação será salva automaticamente ao fim da partida.</p>
-                <div id="score-form">
-                    <label for="player-name">Nome do jogador</label>
-                    <input id="player-name" name="player" type="text" maxlength="18" autocomplete="nickname" placeholder="Seu nome (opcional)" />
-                </div>
+                <p class="ranking-note">As melhores pontuações deste navegador.</p>
                 <p id="score-status" class="score-status" role="status" aria-live="polite">A pontuação é salva automaticamente ao fim. Sem nome, será registrada como Jogador.</p>
                 <ol id="ranking-list" class="ranking-list" aria-label="Melhores pontuações"></ol>
             </section>
         </div>
     </main>
+    <dialog class="game-modal" id="start-modal" aria-labelledby="start-title">
+        <form class="modal-card" id="start-form">
+            <p class="modal-eyebrow">RIVERGRIP 2D</p>
+            <h2 id="start-title">Pronto para decolar?</h2>
+            <p class="modal-description">Escolha seu nome antes de começar. Se deixar em branco, usaremos “Jogador”.</p>
+            <label for="player-name">Nome do jogador</label>
+            <input id="player-name" name="player" type="text" maxlength="18" autocomplete="nickname" placeholder="Seu nome (opcional)" />
+            <div class="modal-actions">
+                <button class="primary-button" type="submit">Começar partida</button>
+                <button class="secondary-button" type="button" data-action="fullscreen">⛶ Tela cheia</button>
+                <button class="secondary-button" type="button" data-action="help">Como jogar</button>
+            </div>
+        </form>
+    </dialog>
+    <dialog class="game-modal" id="help-modal" aria-labelledby="help-title">
+        <section class="modal-card">
+            <p class="modal-eyebrow">GUIA RÁPIDO</p>
+            <h2 id="help-title">Como jogar</h2>
+            <ul class="modal-help-list">
+                <li>No celular, segure o direcional para mover e ATIRAR para disparar.</li>
+                <li>Desvie dos inimigos e mantenha o avião dentro do rio.</li>
+                <li>Pegue sobreviventes, combustível e corações para pontuar e ganhar vidas.</li>
+                <li>Nas pontes, toque em PULAR ou pressione J para saltar sem perder vida; ou acerte 3 tiros para destruí-las.</li>
+                <li>No teclado: setas ou WASD para mover, Espaço para atirar, J para pular e P ou Esc para pausar.</li>
+            </ul>
+            <div class="modal-actions">
+                <button class="primary-button" type="button" data-action="close-help">Entendi</button>
+            </div>
+        </section>
+    </dialog>
+    <dialog class="game-modal" id="results-modal" aria-labelledby="results-title">
+        <section class="modal-card results-card">
+            <p class="modal-eyebrow">PARTIDA ENCERRADA</p>
+            <h2 id="results-title">Fim de jogo</h2>
+            <p id="final-score" class="final-score"></p>
+            <p id="results-status" class="ranking-note" role="status" aria-live="polite"></p>
+            <h3>Ranking atualizado</h3>
+            <ol id="end-ranking-list" class="ranking-list" aria-label="Ranking atualizado"></ol>
+            <div class="modal-actions">
+                <button class="primary-button" type="button" data-action="replay">Jogar novamente</button>
+                <button class="secondary-button" type="button" data-action="close-results">Fechar</button>
+            </div>
+        </section>
+    </dialog>
     <script src="game.js"></script>
 </body>
 

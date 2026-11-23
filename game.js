@@ -5,13 +5,21 @@
     const H = canvas.height;
     const MAX_FUEL = 100;
     const FUEL_PICKUP_AMOUNT = MAX_FUEL * 0.1;
-    const scoreForm = document.getElementById("score-form");
+    const startForm = document.getElementById("start-form");
     const playerNameInput = document.getElementById("player-name");
     const scoreStatus = document.getElementById("score-status");
     const rankingList = document.getElementById("ranking-list");
+    const endRankingList = document.getElementById("end-ranking-list");
+    const startModal = document.getElementById("start-modal");
+    const helpModal = document.getElementById("help-modal");
+    const resultsModal = document.getElementById("results-modal");
+    const finalScore = document.getElementById("final-score");
+    const resultsStatus = document.getElementById("results-status");
+    const fullscreenStatus = document.getElementById("fullscreen-status");
     const gameActionButton = document.querySelector("[data-action='state']");
     const jumpButton = document.querySelector("[data-action='jump']");
     const touchControlButtons = document.querySelectorAll(".touch-controls [data-key]");
+    const fullscreenButtons = document.querySelectorAll("[data-action='fullscreen']");
     const RANKING_STORAGE_KEY = "rivergrip-ranking-v1";
 
     const STATE = { MENU: "menu", PLAY: "play", OVER: "over", PAUSE: "pause" };
@@ -25,6 +33,7 @@
     let engineGain = null;
     let savedScores = [];
     let rankingAvailable = true;
+    let helpOpenedDuringPlay = false;
 
     const PHASES = [
         { id: 1, name: "FASE 1", subtitle: "Rio Interior", sky: "#b9d8d3", land: "#688b78", water: "#55a8ae", waterDeep: "#468f9b", accent: "#a8f0dc", scenery: ["tree", "tree", "house", "farm"], landmark: "waterfall", spawnLimit: 4, enemySpeed: 0.9, targetScore: 1200, rescueGoal: 2 },
@@ -375,13 +384,13 @@
         );
     }
 
-    function renderRanking() {
-        rankingList.replaceChildren();
+    function renderRanking(list = rankingList) {
+        list.replaceChildren();
         if (savedScores.length === 0) {
             const empty = document.createElement("li");
             empty.className = "empty";
             empty.textContent = "Nenhuma pontuação salva ainda.";
-            rankingList.appendChild(empty);
+            list.appendChild(empty);
             return;
         }
 
@@ -392,7 +401,7 @@
             player.textContent = `${index + 1}. ${entry.name}`;
             score.textContent = Math.floor(entry.score).toLocaleString("pt-BR");
             item.append(player, score);
-            rankingList.appendChild(item);
+            list.appendChild(item);
         });
     }
 
@@ -414,6 +423,7 @@
         if (!game || state !== STATE.OVER || game.scoreSaved || !rankingAvailable) return;
 
         const name = playerNameInput.value.trim() || "Jogador";
+        playerNameInput.value = name;
         const score = Math.floor(game.score);
         const updatedScores = [...savedScores, { name, score, savedAt: Date.now() }]
             .sort((a, b) => b.score - a.score)
@@ -425,10 +435,22 @@
             game.scoreSaved = true;
             setScoreStatus(`Pontuação de ${name} salva: ${score.toLocaleString("pt-BR")} pontos.`);
             renderRanking();
+            return true;
         } catch (error) {
             setScoreStatus("Não foi possível salvar. Verifique o armazenamento do navegador.", true);
             console.error("Falha ao salvar a pontuação:", error);
+            return false;
         }
+    }
+
+    function showResults() {
+        finalScore.textContent = `Jogador: ${playerNameInput.value.trim() || "Jogador"} · Pontuação: ${Math.floor(game.score).toLocaleString("pt-BR")}`;
+        resultsStatus.textContent = game.scoreSaved
+            ? "Sua pontuação foi salva neste navegador."
+            : "A pontuação não pôde ser salva, mas este é o ranking disponível neste navegador.";
+        resultsStatus.classList.toggle("error", !game.scoreSaved);
+        renderRanking(endRankingList);
+        if (!resultsModal.open) resultsModal.showModal();
     }
 
     function loseLife(g, reason = "inimigo") {
@@ -446,6 +468,7 @@
             if (!game.scoreSaved && rankingAvailable) {
                 setScoreStatus("Não foi possível salvar a pontuação. Verifique o armazenamento do navegador.", true);
             }
+            showResults();
             return;
         }
 
@@ -1355,7 +1378,7 @@
 
     function toggleGameState() {
         if (state === STATE.MENU || state === STATE.OVER) {
-            startGame();
+            showStartModal();
         } else if (state === STATE.PLAY) {
             state = STATE.PAUSE;
             stopEngineSound();
@@ -1365,6 +1388,44 @@
             startEngineSound();
             beep(550, 0.05, "sine", 0.03);
         }
+    }
+
+    function showStartModal() {
+        if (resultsModal.open) resultsModal.close();
+        if (!startModal.open) startModal.showModal();
+    }
+
+    function openHelpModal() {
+        helpOpenedDuringPlay = state === STATE.PLAY;
+        if (helpOpenedDuringPlay) {
+            state = STATE.PAUSE;
+            stopEngineSound();
+        }
+        if (!helpModal.open) helpModal.showModal();
+    }
+
+    async function toggleFullscreen() {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            } else if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                fullscreenStatus.textContent = "Tela cheia não é compatível com este navegador.";
+            }
+        } catch (error) {
+            fullscreenStatus.textContent = "Não foi possível ativar a tela cheia neste navegador.";
+            console.error("Falha ao alternar tela cheia:", error);
+        }
+    }
+
+    function updateFullscreenButtons() {
+        const isFullscreen = Boolean(document.fullscreenElement);
+        fullscreenStatus.textContent = "";
+        fullscreenButtons.forEach((button) => {
+            button.textContent = isFullscreen ? "⛶ Sair da tela cheia" : "⛶ Tela cheia";
+            button.setAttribute("aria-label", isFullscreen ? "Sair da tela cheia" : "Ativar tela cheia");
+        });
     }
 
     function syncGameActionButton() {
@@ -1433,13 +1494,7 @@
     }
 
     window.addEventListener("keydown", (event) => {
-        if (scoreForm.contains(event.target)) {
-            if (event.code !== "Enter" || event.target !== playerNameInput) {
-                return;
-            }
-            event.preventDefault();
-            if (state !== STATE.MENU) return;
-        }
+        if (startModal.open || helpModal.open || resultsModal.open) return;
         keys.add(event.code);
 
         if (event.code === "KeyP" || event.code === "Escape") {
@@ -1456,7 +1511,7 @@
         if (event.code === "Space" || event.code.startsWith("Arrow")) event.preventDefault();
 
         if (event.code === "Enter") {
-            startGame();
+            if (state !== STATE.PLAY && state !== STATE.PAUSE) showStartModal();
         }
     });
 
@@ -1487,13 +1542,41 @@
         button.addEventListener("lostpointercapture", releaseButton);
     });
 
-    gameActionButton.addEventListener("click", toggleGameState);
+    startForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        playerNameInput.value = playerNameInput.value.trim() || "Jogador";
+        startModal.close();
+        startGame();
+    });
+
+    document.querySelectorAll("[data-action='state']").forEach((button) => {
+        button.addEventListener("click", toggleGameState);
+    });
     jumpButton.addEventListener("click", startBridgeJump);
+    document.querySelectorAll("[data-action='help']").forEach((button) => {
+        button.addEventListener("click", openHelpModal);
+    });
+    document.querySelector("[data-action='close-help']").addEventListener("click", () => helpModal.close());
+    helpModal.addEventListener("close", () => {
+        if (helpOpenedDuringPlay && state === STATE.PAUSE) {
+            state = STATE.PLAY;
+            startEngineSound();
+        }
+        helpOpenedDuringPlay = false;
+    });
+    document.querySelector("[data-action='replay']").addEventListener("click", showStartModal);
+    document.querySelector("[data-action='close-results']").addEventListener("click", () => resultsModal.close());
+    fullscreenButtons.forEach((button) => {
+        button.addEventListener("click", toggleFullscreen);
+    });
+    document.addEventListener("fullscreenchange", updateFullscreenButtons);
     window.addEventListener("blur", releaseAllControls);
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) releaseAllControls();
     });
 
     loadRanking();
+    startModal.showModal();
+    updateFullscreenButtons();
     requestAnimationFrame(loop);
 })();

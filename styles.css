@@ -56,6 +56,7 @@ body {
 }
 
 .stage {
+    position: relative;
     grid-column: 1;
     overflow: hidden;
     padding: 7px;
@@ -79,6 +80,49 @@ canvas {
     height: auto;
     border-radius: 12px;
     background: #102c36;
+}
+
+.fullscreen-button,
+.help-overlay-button {
+    position: absolute;
+    z-index: 1;
+    top: 12px;
+    padding: 8px 10px;
+    border: 1px solid rgba(177, 210, 225, 0.3);
+    border-radius: 9px;
+    background: rgba(7, 18, 27, 0.82);
+    color: var(--text);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.fullscreen-button {
+    right: 12px;
+}
+
+.help-overlay-button {
+    right: 126px;
+}
+
+.fullscreen-status {
+    position: absolute;
+    z-index: 1;
+    top: 50px;
+    right: 12px;
+    max-width: min(300px, calc(100% - 24px));
+    margin: 0;
+    padding: 7px 9px;
+    border-radius: 7px;
+    background: rgba(7, 18, 27, 0.88);
+    color: #f2a2a2;
+    font-size: 11px;
+}
+
+.fullscreen-status:empty {
+    display: none;
 }
 
 .touch-controls {
@@ -218,6 +262,10 @@ canvas {
     color: #f2a2a2;
 }
 
+.ranking-note.error {
+    color: #f2a2a2;
+}
+
 #score-form {
     display: grid;
     gap: 8px;
@@ -337,6 +385,132 @@ kbd {
     font-family: inherit;
     font-size: 11px;
     text-align: center;
+}
+
+.game-modal {
+    width: min(460px, calc(100vw - 28px));
+    max-width: none;
+    max-height: min(90dvh, 760px);
+    margin: auto;
+    padding: 0;
+    overflow: auto;
+    border: 1px solid rgba(177, 210, 225, 0.2);
+    border-radius: 20px;
+    background: #101f2b;
+    color: var(--text);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52);
+}
+
+.game-modal::backdrop {
+    background: rgba(2, 10, 15, 0.78);
+    backdrop-filter: blur(5px);
+}
+
+.modal-card {
+    display: grid;
+    gap: 12px;
+    padding: clamp(20px, 5vw, 30px);
+}
+
+.modal-eyebrow {
+    margin: 0;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.16em;
+}
+
+.modal-card h2 {
+    margin: 0;
+    font-size: clamp(23px, 6vw, 30px);
+}
+
+.modal-card h3 {
+    margin: 4px 0 -4px;
+    font-size: 15px;
+}
+
+.modal-description,
+.modal-card label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.modal-card input {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    outline: none;
+    background: #0a1821;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+}
+
+.modal-card input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(125, 224, 195, 0.12);
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 5px;
+}
+
+.modal-actions button {
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.modal-actions .primary-button {
+    grid-column: 1 / -1;
+    background: var(--accent);
+    color: #092019;
+}
+
+.modal-actions .secondary-button {
+    border: 1px solid var(--panel-border);
+    background: #1b303d;
+    color: var(--text);
+}
+
+.modal-help-list {
+    display: grid;
+    gap: 11px;
+    margin: 0;
+    padding-left: 20px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.final-score {
+    margin: 0;
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.results-card .ranking-note {
+    margin: 0;
+}
+
+.results-card .ranking-list {
+    max-height: 34dvh;
+    overflow-y: auto;
 }
 
 @media (max-width: 960px) {
